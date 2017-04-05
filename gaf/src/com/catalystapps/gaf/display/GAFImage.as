@@ -1,7 +1,9 @@
 package com.catalystapps.gaf.display
 {
 	import com.catalystapps.gaf.core.gaf_internal;
-	import com.catalystapps.gaf.data.config.CFilter;
+    import com.catalystapps.gaf.data.GAF;
+import com.catalystapps.gaf.data.IMaskDisplayObject;
+import com.catalystapps.gaf.data.config.CFilter;
 	import com.catalystapps.gaf.filter.GAFFilter;
 
 	import flash.geom.Matrix;
@@ -17,7 +19,7 @@ package com.catalystapps.gaf.display
 	/**
 	 * GAFImage represents static GAF display object that is part of the <code>GAFMovieClip</code>.
 	 */
-	public class GAFImage extends Image implements IGAFImage, IMaxSize, IGAFDebug
+	public class GAFImage extends Image implements IGAFImage, IMaxSize, IGAFDebug, IMaskDisplayObject
 	{
 		//--------------------------------------------------------------------------
 		//
@@ -45,6 +47,9 @@ package com.catalystapps.gaf.display
 
 		private var _pivotChanged: Boolean;
 
+		private var _maskName: String;
+
+        private var _localFiltersEnabled:Boolean = false;
 		/** @private */
 		gaf_internal var __debugOriginalAlpha: Number = NaN;
 
@@ -152,9 +157,13 @@ package com.catalystapps.gaf.display
 		/** @private */
 		public function setFilterConfig(value: CFilter, scale: Number = 1): void
 		{
-			if (!Starling.current.contextValid)
-			{
+			if (!Starling.current.contextValid)	{
 				return;
+			}
+
+			if (!_localFiltersEnabled &&!GAF.filtersEnabled)
+			{
+				value = null;
 			}
 
 			if (this._filterConfig != value || this._filterScale != scale)
@@ -195,6 +204,11 @@ package com.catalystapps.gaf.display
 					this._filterScale = NaN;
 				}
 			}
+		}
+
+		/** @private */
+		public function updateTransformation():void {
+			updateTransformMatrix();
 		}
 
 		//--------------------------------------------------------------------------
@@ -267,6 +281,8 @@ package com.catalystapps.gaf.display
 			}
 			this._assetTexture = null;
 			this._filterConfig = null;
+
+			unregisterMaskFromController();
 
 			super.dispose();
 		}
@@ -420,5 +436,33 @@ package com.catalystapps.gaf.display
 
 			return HELPER_MATRIX;
 		}
-	}
+
+		public function get maskName():String
+		{
+			return _maskName;
+		}
+
+		public function set maskName(value:String):void
+		{
+			_maskName = value;
+		}
+
+		public function unregisterMaskFromController():void
+		{
+			if (GAF.maskController && maskName)
+			{
+				GAF.maskController.unregisterMask(this, maskName);
+			}
+		}
+
+        public function get localFiltersEnabled():Boolean
+		{
+            return _localFiltersEnabled;
+        }
+
+        public function set localFiltersEnabled(value:Boolean):void
+		{
+            _localFiltersEnabled = value;
+        }
+    }
 }

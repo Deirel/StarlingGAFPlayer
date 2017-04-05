@@ -15,6 +15,7 @@ package com.catalystapps.gaf.data.config
 	 */
 	public class CTextureAtlas
 	{
+		public static var globalProvider:ICTextureAtlasProvider;
 		//--------------------------------------------------------------------------
 		//
 		//  PUBLIC VARIABLES
@@ -117,6 +118,15 @@ package com.catalystapps.gaf.data.config
 
 		gaf_internal function getTextureByIDAndAtlasID(id: String, atlasID: String): Texture
 		{
+			if (globalProvider)
+			{
+				var texture:Texture = globalProvider.getTexture(id);
+				if (texture)
+				{
+					return texture;
+				}
+			}
+
 			var textureAtlas: TextureAtlas = this._textureAtlasesDictionary[atlasID];
 
 			return textureAtlas.getTexture(id);

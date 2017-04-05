@@ -8,7 +8,8 @@
 package com.catalystapps.gaf.display
 {
 	import com.catalystapps.gaf.core.gaf_internal;
-	import com.catalystapps.gaf.data.config.CFilter;
+    import com.catalystapps.gaf.data.GAF;
+    import com.catalystapps.gaf.data.config.CFilter;
 	import com.catalystapps.gaf.filter.GAFFilter;
 	import com.catalystapps.gaf.utils.MathUtility;
 
@@ -447,6 +448,11 @@ package com.catalystapps.gaf.display
 			if (!Starling.current.contextValid)
 			{
 				return;
+			}
+
+			if (!GAF.filtersEnabled)
+			{
+				value = null;
 			}
 
 			if (this._filterConfig != value || this._filterScale != scale)

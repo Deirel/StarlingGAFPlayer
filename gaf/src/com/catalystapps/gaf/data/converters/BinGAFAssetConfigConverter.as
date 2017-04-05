@@ -220,11 +220,11 @@ package com.catalystapps.gaf.data.converters
 					break;
 				case BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_MASKS:
 				case BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_MASKS2:
-					readAnimationMasks(tagID, this._bytes, this._currentTimeline);
+					readAnimationMasks(tagID, _assetID, this._bytes, this._currentTimeline);
 					break;
 				case BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_OBJECTS:
 				case BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_OBJECTS2:
-					readAnimationObjects(tagID, this._bytes, this._currentTimeline);
+					readAnimationObjects(tagID, _assetID, this._bytes, this._currentTimeline);
 					break;
 				case BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_FRAMES:
 				case BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_FRAMES2:
@@ -343,7 +343,7 @@ package com.catalystapps.gaf.data.converters
 								var maskTimeline: GAFTimelineConfig;
 								for each (maskTimeline in this._config.timelines)
 								{
-									if (maskTimeline.id == animationObject.regionID)
+									if (maskTimeline.id == frameInstance.id)
 									{
 										break;
 									}
@@ -757,7 +757,7 @@ package com.catalystapps.gaf.data.converters
 			var elementScaleY: Number;
 			var elementWidth: Number;
 			var elementHeight: Number;
-			var elementAtlasID: uint;
+			var elementAtlasID: String;
 			var rotation: Boolean;
 			var linkageName: String;
 
@@ -774,7 +774,7 @@ package com.catalystapps.gaf.data.converters
 				elementWidth = this._bytes.readFloat();
 				elementHeight = this._bytes.readFloat();
 				atlasID = this._bytes.readUnsignedInt();
-				elementAtlasID = this._bytes.readUnsignedInt();
+				elementAtlasID = _assetID + "_" + this._bytes.readUnsignedInt();
 
 				if (tagID == BinGAFAssetConfigConverter.TAG_DEFINE_ATLAS2
 				|| tagID == BinGAFAssetConfigConverter.TAG_DEFINE_ATLAS3)
@@ -801,9 +801,9 @@ package com.catalystapps.gaf.data.converters
 					linkageName = this._bytes.readUTF();
 				}
 
-				if (!elements.getElement(elementAtlasID.toString()))
+				if (!elements.getElement(elementAtlasID))
 				{
-					element = new CTextureAtlasElement(elementAtlasID.toString(), atlasID.toString());
+					element = new CTextureAtlasElement(elementAtlasID, atlasID.toString());
 					element.region = new Rectangle(int(topLeft.x), int(topLeft.y), elementWidth, elementHeight);
 					element.pivotMatrix = new Matrix(1 / elementScaleX, 0, 0, 1 / elementScaleY, -pivot.x / elementScaleX, -pivot.y / elementScaleY);
 					element.scale9Grid = scale9Grid;
@@ -997,17 +997,17 @@ package com.catalystapps.gaf.data.converters
 			return [alpha, color];
 		}
 
-		private static function readAnimationMasks(tagID: int, tagContent: ByteArray, timelineConfig: GAFTimelineConfig): void
+		private static function readAnimationMasks(tagID: int, assetID:String, tagContent: ByteArray, timelineConfig: GAFTimelineConfig): void
 		{
 			var length: int = tagContent.readUnsignedInt();
 			var objectID: int;
-			var regionID: int;
+			var regionID: String;
 			var type: String;
 
 			for (var i: uint = 0; i < length; i++)
 			{
 				objectID = tagContent.readUnsignedInt();
-				regionID = tagContent.readUnsignedInt();
+				regionID = tagContent.readUnsignedInt() + "";
 				if (tagID == BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_MASKS)
 				{
 					type = CAnimationObject.TYPE_TEXTURE;
@@ -1016,7 +1016,11 @@ package com.catalystapps.gaf.data.converters
 				{
 					type = getAnimationObjectTypeString(tagContent.readUnsignedShort());
 				}
-				timelineConfig.animationObjects.addAnimationObject(new CAnimationObject(objectID + "", regionID + "", type, true));
+				if (type == CAnimationObject.TYPE_TEXTURE)
+				{
+					regionID = assetID + "_" + regionID;
+				}
+				timelineConfig.animationObjects.addAnimationObject(new CAnimationObject(objectID + "", regionID, type, true));
 			}
 		}
 
@@ -1039,17 +1043,17 @@ package com.catalystapps.gaf.data.converters
 			return typeString;
 		}
 
-		private static function readAnimationObjects(tagID: int, tagContent: ByteArray, timelineConfig: GAFTimelineConfig): void
+		private static function readAnimationObjects(tagID: int, assetID:String, tagContent: ByteArray, timelineConfig: GAFTimelineConfig): void
 		{
 			var length: int = tagContent.readUnsignedInt();
 			var objectID: int;
-			var regionID: int;
+			var regionID: String;
 			var type: String;
 
 			for (var i: uint = 0; i < length; i++)
 			{
 				objectID = tagContent.readUnsignedInt();
-				regionID = tagContent.readUnsignedInt();
+				regionID = tagContent.readUnsignedInt() + "";
 				if (tagID == BinGAFAssetConfigConverter.TAG_DEFINE_ANIMATION_OBJECTS)
 				{
 					type = CAnimationObject.TYPE_TEXTURE;
@@ -1058,7 +1062,11 @@ package com.catalystapps.gaf.data.converters
 				{
 					type = getAnimationObjectTypeString(tagContent.readUnsignedShort());
 				}
-				timelineConfig.animationObjects.addAnimationObject(new CAnimationObject(objectID + "", regionID + "", type, false));
+				if (type == CAnimationObject.TYPE_TEXTURE)
+				{
+					regionID = assetID + "_" + regionID;
+				}
+				timelineConfig.animationObjects.addAnimationObject(new CAnimationObject(objectID + "", regionID, type, false));
 			}
 		}
 

@@ -1,6 +1,7 @@
 package com.catalystapps.gaf.display
 {
-	import com.catalystapps.gaf.data.config.CFilter;
+    import com.catalystapps.gaf.data.GAF;
+    import com.catalystapps.gaf.data.config.CFilter;
 
 	import flash.display3D.Context3DBlendFactor;
 	import flash.geom.Matrix;
@@ -24,6 +25,7 @@ package com.catalystapps.gaf.display
 	public class GAFPixelMaskDisplayObject extends DisplayObjectContainer
 	{
 		private static const MASK_MODE: String = "mask";
+		private static const NECESSARY_MASK_SIGN: String = "mustShow";
 
 		private static const PADDING: uint = 1;
 
@@ -56,6 +58,8 @@ package com.catalystapps.gaf.display
 			// This avoids memory leaks when people forget to call "dispose" on the object.
 			Starling.current.stage3D.addEventListener(Event.CONTEXT3D_CREATE,
 					this.onContextCreated, false, 0, true);
+
+			this.visible = mayBeShown;
 		}
 
 		override public function dispose(): void
@@ -107,11 +111,18 @@ package com.catalystapps.gaf.display
 			{
 				this.clearRenderTextures();
 			}
+
+			this.visible = mayBeShown;
 		}
 
 		public function get pixelMask(): DisplayObject
 		{
 			return this._mask;
+		}
+
+		private function get mayBeShown():Boolean
+		{
+			return (_mask && _mask.name && _mask.name.indexOf(NECESSARY_MASK_SIGN) > -1) || GAF.pixelMaskEnabled;
 		}
 
 		protected function clearRenderTextures(): void
@@ -248,6 +259,11 @@ package com.catalystapps.gaf.display
 		public function set mustReorder(value: Boolean): void
 		{
 			this._mustReorder = value;
+		}
+
+		override public function set visible(value:Boolean):void
+        {
+			super.visible = mayBeShown && value;
 		}
 	}
 }

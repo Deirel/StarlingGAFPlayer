@@ -613,6 +613,7 @@ package com.catalystapps.gaf.core
 			if (!Starling.current.contextValid)
 			{
 				Starling.current.stage3D.addEventListener(Event.CONTEXT3D_CREATE, createGAFTimelines);
+                return;
 			}
 
 			var gafTimelineConfigs: Vector.<GAFTimelineConfig>;
@@ -689,7 +690,8 @@ package com.catalystapps.gaf.core
 								}
 								else
 								{
-									this.zipProcessError(ErrorConstants.ATLAS_NOT_FOUND + taSource.source + "' in zip", 3);
+									// Не нужно, чтобы не мешало использовать сторонние атласы вместо встроенных
+									// this.zipProcessError(ErrorConstants.ATLAS_NOT_FOUND + taSource.source + "' in zip", 3);
 								}
 							}
 						}

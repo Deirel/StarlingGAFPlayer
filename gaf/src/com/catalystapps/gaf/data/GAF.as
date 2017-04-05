@@ -1,7 +1,18 @@
 package com.catalystapps.gaf.data
 {
 	import com.catalystapps.gaf.core.gaf_internal;
-	/**
+import com.catalystapps.gaf.data.config.CTextureAtlas;
+import com.catalystapps.gaf.data.config.ICTextureAtlasProvider;
+import com.catalystapps.gaf.display.GAFMovieClip;
+import com.junkbyte.console.Cc;
+import com.catalystapps.gaf.data.config.IParticleProvider;
+
+import starling.animation.IAnimatable;
+
+import starling.core.Starling;
+
+	use namespace gaf_internal;
+/**
 	 * The GAF class defines global GAF library settings
 	 */
 	public class GAF
@@ -25,13 +36,41 @@ package com.catalystapps.gaf.data
 		 */
 		public static var useMipMaps: Boolean;
 
+		public static var pixelMaskEnabled: Boolean = true;
+
+		public static var filtersEnabled: Boolean = true;
+
+		public static var mcFrameDispatchEventsEnabled: Boolean = true;
+
+		public static var mcPlaybackEventsEnabled: Boolean = true;
+
+		public static var useBitmapFonts: Boolean = false;
+
+		public static var defaultBitmapFontTextFormatFactory:Function = null;
+
 		/** @private */
 		gaf_internal static var useDeviceFonts: Boolean;
+
+		private static var _animator:IAnimator;
+
+		public static var useAnimator:Boolean = true;
+
+		public static var maskController:IMaskController;
 
 		/** @private */
 		gaf_internal static function get maxAlpha(): Number
 		{
 			return use99alpha ? 0.99 : 1;
 		}
+
+		public static function set globalAtlasProvider(value:ICTextureAtlasProvider): void
+		{
+			CTextureAtlas.globalProvider = value;
+		}
+		public static function get animator():IAnimator
+		{
+			return _animator ? _animator : _animator = new GAFAnimator();
+		}
 	}
 }
+

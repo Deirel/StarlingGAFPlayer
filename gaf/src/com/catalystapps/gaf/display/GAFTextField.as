@@ -3,25 +3,27 @@
  */
 package com.catalystapps.gaf.display
 {
-	import com.catalystapps.gaf.core.gaf_internal;
-	import com.catalystapps.gaf.data.GAF;
-	import com.catalystapps.gaf.data.config.CFilter;
-	import com.catalystapps.gaf.data.config.CTextFieldObject;
-	import com.catalystapps.gaf.filter.GAFFilter;
-	import com.catalystapps.gaf.utils.DebugUtility;
+import com.catalystapps.gaf.core.gaf_internal;
+import com.catalystapps.gaf.data.GAF;
+import com.catalystapps.gaf.data.config.CFilter;
+import com.catalystapps.gaf.data.config.CTextFieldObject;
+import com.catalystapps.gaf.data.config.ICFilterData;
+import com.catalystapps.gaf.filter.GAFFilter;
+import com.catalystapps.gaf.utils.DebugUtility;
 
-	import feathers.controls.TextInput;
-	import feathers.controls.text.TextFieldTextEditor;
-	import feathers.core.ITextEditor;
+import feathers.controls.TextInput;
+import feathers.core.FeathersControl;
+import feathers.core.ITextEditor;
+import feathers.text.BitmapFontTextFormat;
 
-	import flash.geom.Matrix;
-	import flash.geom.Point;
-	import flash.text.TextFormat;
+import flash.geom.Matrix;
+import flash.geom.Point;
+import flash.text.TextFormat;
 
-	import starling.display.Image;
-	import starling.textures.Texture;
+import starling.display.Image;
+import starling.textures.Texture;
 
-	/**
+/**
 	 * GAFTextField is a text entry control that extends functionality of the <code>feathers.controls.TextInput</code>
 	 * for the GAF library needs.
 	 * All dynamic text fields (including input text fields) in GAF library are instances of the GAFTextField.
@@ -34,6 +36,8 @@ package com.catalystapps.gaf.display
 		//  PUBLIC VARIABLES
 		//
 		//--------------------------------------------------------------------------
+
+		public var bitmapFontTextFormatFactory:Function;
 
 		//--------------------------------------------------------------------------
 		//
@@ -107,15 +111,30 @@ package com.catalystapps.gaf.display
 			this.displayAsPassword = config.displayAsPassword;
 			this.maxChars = config.maxChars;
 			this.verticalAlign = TextInput.VERTICAL_ALIGN_TOP;
+			this.padding = 2.0;
 
-			this.textEditorProperties.textFormat = cloneTextFormat(config.textFormat);
-			this.textEditorProperties.embedFonts = GAF.gaf_internal::useDeviceFonts ? false : config.embedFonts;
-			this.textEditorProperties.multiline = config.multiline;
-			this.textEditorProperties.wordWrap = config.wordWrap;
-			this.textEditorFactory = function (): ITextEditor
+			this.bitmapFontTextFormatFactory = GAF.defaultBitmapFontTextFormatFactory;
+
+			if (GAF.useBitmapFonts)
 			{
-				return new GAFTextFieldTextEditor(_scale, _csf);
-			};
+				this.textEditorProperties.wordWrap = config.wordWrap;
+				this.textEditorProperties.snapToPixels = false;
+				this.textEditorFactory = function (): ITextEditor
+				{
+					return new GAFBitmapFontTextEditor();
+				};
+			}
+			else
+			{
+				this.textEditorProperties.textFormat = cloneTextFormat(config.textFormat);
+				this.textEditorProperties.embedFonts = GAF.gaf_internal::useDeviceFonts ? false : config.embedFonts;
+				this.textEditorProperties.multiline = config.multiline;
+				this.textEditorProperties.wordWrap = config.wordWrap;
+				this.textEditorFactory = function (): ITextEditor
+				{
+					return new GAFTextFieldTextEditor(_scale, _csf);
+				};
+			}
 
 			this.invalidateSize();
 
@@ -127,6 +146,15 @@ package com.catalystapps.gaf.display
 		//  PUBLIC METHODS
 		//
 		//--------------------------------------------------------------------------
+		override protected function initialize():void
+		{
+			if (GAF.useBitmapFonts)
+			{
+				this.textEditorProperties.textFormat = getBitmapTextFormatFromfactory();
+			}
+
+			super.initialize();
+		}
 
 		/**
 		 * Creates a new instance of GAFTextField.
@@ -138,6 +166,7 @@ package com.catalystapps.gaf.display
 			clone.visible = this.visible;
 			clone.transformationMatrix = this.transformationMatrix;
 			clone.textEditorFactory = this.textEditorFactory;
+			clone.bitmapFontTextFormatFactory = this.bitmapFontTextFormatFactory;
 			clone.setFilterConfig(_filterConfig, _filterScale);
 
 			return clone;
@@ -149,9 +178,9 @@ package com.catalystapps.gaf.display
 		 */
 		public function invalidateSize(): void
 		{
-			if (this.textEditor && this.textEditor is TextFieldTextEditor)
+			if (this.textEditor && this.textEditor is FeathersControl)
 			{
-				(this.textEditor as TextFieldTextEditor).invalidate(INVALIDATION_FLAG_SIZE);
+				(this.textEditor as FeathersControl).invalidate(INVALIDATION_FLAG_SIZE);
 			}
 			this.invalidate(INVALIDATION_FLAG_SIZE);
 		}
@@ -237,20 +266,48 @@ package com.catalystapps.gaf.display
 			}
 		}
 
+		/** @private */
+		public function updateTransformation():void
+		{
+			updateTransformMatrix();
+		}
+
+		/** @private */
+		public function getTextFormat():TextFormat
+		{
+			return _config.textFormat;
+		}
+
+		/** @private */
+		public function setTextFormat(value:TextFormat):void
+		{
+			if (GAF.useBitmapFonts)
+			{
+				this.textEditorProperties.textFormat = getBitmapTextFormatFromfactory();
+			}
+		}
+
 		//--------------------------------------------------------------------------
 		//
 		//  PRIVATE METHODS
 		//
 		//--------------------------------------------------------------------------
 
+		private function getBitmapTextFormatFromfactory():BitmapFontTextFormat
+		{
+			return bitmapFontTextFormatFactory.length
+					? bitmapFontTextFormatFactory(this)
+				    : bitmapFontTextFormatFactory();
+		}
+
 		/** @private */
 		private function applyFilter(): void
 		{
 			if (this.textEditor)
 			{
-				if (this.textEditor is GAFTextFieldTextEditor)
+				if (this.textEditor is IGAFTextEditor)
 				{
-					(this.textEditor as GAFTextFieldTextEditor).setFilterConfig(this._filterConfig, this._filterScale);
+					(this.textEditor as IGAFTextEditor).setFilterConfig(this._filterConfig, this._filterScale);
 				}
 				else if (this._filterConfig && !isNaN(this._filterScale))
 				{
@@ -273,7 +330,10 @@ package com.catalystapps.gaf.display
 					}
 
 					gafFilter.setConfig(this._filterConfig, this._filterScale);
-					this.filter = gafFilter;
+					if (GAF.filtersEnabled)
+					{
+						this.filter = gafFilter;
+					}
 				}
 				else if (this.filter)
 				{
@@ -479,6 +539,11 @@ package com.catalystapps.gaf.display
 			this.textEditor.measureText(HELPER_POINT);
 
 			return HELPER_POINT.y;
+		}
+
+		public function get filtersData():Vector.<ICFilterData>
+		{
+			return _filterConfig ? _filterConfig.filterConfigs : null;
 		}
 
 		//--------------------------------------------------------------------------
