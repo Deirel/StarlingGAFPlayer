@@ -4,6 +4,7 @@ package com.catalystapps.gaf.data
 	import com.catalystapps.gaf.data.tagfx.TAGFXBase;
 	import com.catalystapps.gaf.utils.DebugUtility;
 
+
 	import flash.display.BitmapData;
 	import flash.display3D.Context3DTextureFormat;
 	import flash.events.Event;
@@ -22,7 +23,7 @@ package com.catalystapps.gaf.data
 
 	/**
 	 * Graphical data storage that used by <code>GAFTimeline</code>. It contain all created textures and all
-	 * saved images as <code>BitmapData</code> (in case when <code>Starling.handleLostContext = true</code> was set before asset conversion).
+	 * saved images as <code>BitmapData</code>.
 	 * Used as shared graphical data storage between several GAFTimelines if they are used the same texture atlas (bundle created using "Create bundle" option)
 	 */
 	public class GAFGFXData extends EventDispatcher
@@ -271,7 +272,21 @@ package com.catalystapps.gaf.data
 					bitmapData = setGrayScale(tagfx.source.clone());
 				}
 
-				dictionary[imageID] = Texture.fromBitmapData(bitmapData, GAF.useMipMaps, false, tagfx.textureScale, tagfx.textureFormat);
+				if(bitmapData)
+				{
+                    dictionary[imageID] = Texture.fromBitmapData(bitmapData, GAF.useMipMaps, false, tagfx.textureScale, tagfx.textureFormat);
+				}
+				else
+				{
+					if(tagfx.texture)
+					{
+                        dictionary[imageID] = tagfx.texture;
+					}
+					else
+					{
+						throw new Error("GAFGFXData texture for rendering not found!")
+					}
+				}
 			}
 			else if (!dictionary[imageID])
 			{
@@ -310,7 +325,6 @@ package com.catalystapps.gaf.data
 		//  EVENT HANDLERS
 		//
 		//--------------------------------------------------------------------------
-
 		private function onTextureReady(event: Event): void
 		{
 			var tagfx: ITAGFX = event.currentTarget as ITAGFX;
@@ -332,7 +346,7 @@ package com.catalystapps.gaf.data
 		public function get isTexturesReady(): Boolean
 		{
 			var empty: Boolean = true;
-			for (var tagfx: ITAGFX in this._textureLoadersSet)
+			for (var tagfx:* in this._textureLoadersSet)
 			{
 				empty = false;
 				break;

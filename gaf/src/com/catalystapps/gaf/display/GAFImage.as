@@ -6,6 +6,9 @@ import com.catalystapps.gaf.data.IMaskDisplayObject;
 import com.catalystapps.gaf.data.config.CFilter;
 	import com.catalystapps.gaf.filter.GAFFilter;
 
+	import com.catalystapps.gaf.data.config.CFilter;
+	import com.catalystapps.gaf.filter.GAFFilterChain;
+
 	import flash.geom.Matrix;
 	import flash.geom.Matrix3D;
 	import flash.geom.Point;
@@ -33,6 +36,8 @@ import com.catalystapps.gaf.data.config.CFilter;
 		//
 		//--------------------------------------------------------------------------
 
+		private static const V_DATA_ATTR: String = "position";
+
 		private static const HELPER_POINT: Point = new Point();
 		private static const HELPER_POINT_3D: Vector3D = new Vector3D();
 		private static const HELPER_MATRIX: Matrix = new Matrix();
@@ -40,6 +45,7 @@ import com.catalystapps.gaf.data.config.CFilter;
 
 		private var _assetTexture: IGAFTexture;
 
+		private var _filterChain:GAFFilterChain;
 		private var _filterConfig: CFilter;
 		private var _filterScale: Number;
 
@@ -157,7 +163,8 @@ import com.catalystapps.gaf.data.config.CFilter;
 		/** @private */
 		public function setFilterConfig(value: CFilter, scale: Number = 1): void
 		{
-			if (!Starling.current.contextValid)	{
+			if (!Starling.current.contextValid)
+			{
 				return;
 			}
 
@@ -172,26 +179,19 @@ import com.catalystapps.gaf.data.config.CFilter;
 				{
 					this._filterConfig = value;
 					this._filterScale = scale;
-					var gafFilter: GAFFilter;
-					if (this.filter)
-					{
-						if (this.filter is GAFFilter)
-						{
-							gafFilter = this.filter as GAFFilter;
-						}
-						else
-						{
-							this.filter.dispose();
-							gafFilter = new GAFFilter();
-						}
-					}
-					else
-					{
-						gafFilter = new GAFFilter();
-					}
 
-					gafFilter.setConfig(this._filterConfig, this._filterScale);
-					this.filter = gafFilter;
+                    if(this._filterChain)
+                    {
+                        _filterChain.dispose();
+                    }
+                    else
+                    {
+                        _filterChain = new GAFFilterChain();
+                    }
+
+                    _filterChain.setFilterData(_filterConfig);
+
+					this.filter = _filterChain;
 				}
 				else
 				{
@@ -200,6 +200,8 @@ import com.catalystapps.gaf.data.config.CFilter;
 						this.filter.dispose();
 						this.filter = null;
 					}
+
+                    this._filterChain = null;
 					this._filterConfig = null;
 					this._filterScale = NaN;
 				}
@@ -293,14 +295,14 @@ import com.catalystapps.gaf.data.config.CFilter;
 
 			if (targetSpace == this) // optimization
 			{
-				mVertexData.getPosition(3, HELPER_POINT);
+				vertexData.getPoint(3,V_DATA_ATTR, HELPER_POINT);
 				resultRect.setTo(0.0, 0.0, HELPER_POINT.x, HELPER_POINT.y);
 			}
 			else if (targetSpace == parent && rotation == 0.0 && isEquivalent(skewX, skewY)) // optimization
 			{
 				var scaleX: Number = this.scaleX;
 				var scaleY: Number = this.scaleY;
-				mVertexData.getPosition(3, HELPER_POINT);
+				vertexData.getPoint(3,V_DATA_ATTR, HELPER_POINT);
 				resultRect.setTo(x - pivotX * scaleX,      y - pivotY * scaleY,
 						HELPER_POINT.x * scaleX, HELPER_POINT.y * scaleY);
 				if (scaleX < 0) { resultRect.width  *= -1; resultRect.x -= resultRect.width;  }
@@ -310,12 +312,12 @@ import com.catalystapps.gaf.data.config.CFilter;
 			{
 				stage.getCameraPosition(targetSpace, HELPER_POINT_3D);
 				getTransformationMatrix3D(targetSpace, HELPER_MATRIX_3D);
-				mVertexData.getBoundsProjected(HELPER_MATRIX_3D, HELPER_POINT_3D, 0, 4, resultRect);
+				vertexData.getBoundsProjected(V_DATA_ATTR,HELPER_MATRIX_3D, HELPER_POINT_3D, 0, 4, resultRect);
 			}
 			else
 			{
 				getTransformationMatrix(targetSpace, HELPER_MATRIX);
-				mVertexData.getBounds(HELPER_MATRIX, 0, 4, resultRect);
+				vertexData.getBounds(V_DATA_ATTR,HELPER_MATRIX, 0, 4, resultRect);
 			}
 
 			return resultRect;

@@ -11,6 +11,7 @@ package com.catalystapps.gaf.display
     import com.catalystapps.gaf.data.GAF;
     import com.catalystapps.gaf.data.config.CFilter;
 	import com.catalystapps.gaf.filter.GAFFilter;
+	import com.catalystapps.gaf.filter.GAFFilterChain;
 	import com.catalystapps.gaf.utils.MathUtility;
 
 	import feathers.core.IValidating;
@@ -25,7 +26,7 @@ package com.catalystapps.gaf.display
 	import starling.core.Starling;
 	import starling.display.DisplayObject;
 	import starling.display.Image;
-	import starling.display.QuadBatch;
+	import starling.display.MeshBatch;
 	import starling.display.Sprite;
 	import starling.events.Event;
 	import starling.textures.Texture;
@@ -86,7 +87,7 @@ package com.catalystapps.gaf.display
 		private var _color: uint = 0xffffff;
 		private var _useSeparateBatch: Boolean = true;
 		private var _hitArea: Rectangle;
-		private var _batch: QuadBatch;
+		private var _batch: MeshBatch;
 		private var _isValidating: Boolean = false;
 		private var _isInvalid: Boolean = false;
 		private var _validationQueue: ValidationQueue;
@@ -95,6 +96,7 @@ package com.catalystapps.gaf.display
 		private var _debugColors: Vector.<uint>;
 		private var _debugAlphas: Vector.<Number>;
 
+        private var _filterChain:GAFFilterChain;
 		private var _filterConfig: CFilter;
 		private var _filterScale: Number;
 
@@ -131,11 +133,11 @@ package com.catalystapps.gaf.display
 			this._hitArea = new Rectangle();
 			this.invalidateSize();
 
-			this._batch = new QuadBatch();
+			this._batch = new MeshBatch();
 			this._batch.touchable = false;
 			this.addChild(this._batch);
 
-			this.addEventListener(Event.FLATTEN, this.flattenHandler);
+//			this.addEventListener(Event.FLATTEN, this.flattenHandler);
 			this.addEventListener(Event.ADDED_TO_STAGE, this.addedToStageHandler);
 		}
 
@@ -225,7 +227,7 @@ package com.catalystapps.gaf.display
 				{
 					//we were already validating, and something else told us to
 					//validate. that's bad.
-					this._validationQueue.addControl(this, true);
+					this._validationQueue.addControl(this);
 				}
 				return;
 			}
@@ -233,7 +235,7 @@ package com.catalystapps.gaf.display
 			if (this._propertiesChanged || this._layoutChanged || this._renderingChanged)
 			{
 				this._batch.batchable = !this._useSeparateBatch;
-				this._batch.reset();
+				this._batch.clear();
 
 				if (!sHelperImage)
 				{
@@ -242,7 +244,7 @@ package com.catalystapps.gaf.display
 					//won't be an error from Quad.
 					sHelperImage = new Image(this._textures.middleCenter);
 				}
-				sHelperImage.smoothing = this._smoothing;
+				sHelperImage.textureSmoothing = this._smoothing;
 
 				if (!setDebugVertexColors([0, 1, 2, 3]))
 				{
@@ -284,7 +286,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledTopHeight;
 						sHelperImage.x = scaledLeftWidth - sHelperImage.width;
 						sHelperImage.y = scaledTopHeight - sHelperImage.height;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 
 					if (scaledCenterWidth > 0)
@@ -296,7 +298,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledTopHeight;
 						sHelperImage.x = scaledLeftWidth;
 						sHelperImage.y = scaledTopHeight - sHelperImage.height;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 
 					if (scaledRightWidth > 0)
@@ -308,7 +310,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledTopHeight;
 						sHelperImage.x = this._width - scaledRightWidth;
 						sHelperImage.y = scaledTopHeight - sHelperImage.height;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 				}
 
@@ -323,7 +325,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledMiddleHeight;
 						sHelperImage.x = scaledLeftWidth - sHelperImage.width;
 						sHelperImage.y = scaledTopHeight;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 
 					if (scaledCenterWidth > 0)
@@ -335,7 +337,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledMiddleHeight;
 						sHelperImage.x = scaledLeftWidth;
 						sHelperImage.y = scaledTopHeight;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 
 					if (scaledRightWidth > 0)
@@ -347,7 +349,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledMiddleHeight;
 						sHelperImage.x = this._width - scaledRightWidth;
 						sHelperImage.y = scaledTopHeight;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 				}
 
@@ -362,7 +364,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledBottomHeight;
 						sHelperImage.x = scaledLeftWidth - sHelperImage.width;
 						sHelperImage.y = this._height - scaledBottomHeight;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 
 					if (scaledCenterWidth > 0)
@@ -374,7 +376,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledBottomHeight;
 						sHelperImage.x = scaledLeftWidth;
 						sHelperImage.y = this._height - scaledBottomHeight;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 
 					if (scaledRightWidth > 0)
@@ -386,7 +388,7 @@ package com.catalystapps.gaf.display
 						sHelperImage.height = scaledBottomHeight;
 						sHelperImage.x = this._width - scaledRightWidth;
 						sHelperImage.y = this._height - scaledBottomHeight;
-						this._batch.addImage(sHelperImage);
+						this._batch.addMesh(sHelperImage);
 					}
 				}
 			}
@@ -461,26 +463,17 @@ package com.catalystapps.gaf.display
 				{
 					this._filterConfig = value;
 					this._filterScale = scale;
-					var gafFilter: GAFFilter;
-					if (this._batch.filter)
-					{
-						if (this._batch.filter is GAFFilter)
-						{
-							gafFilter = this._batch.filter as GAFFilter;
-						}
-						else
-						{
-							this._batch.filter.dispose();
-							gafFilter = new GAFFilter();
-						}
-					}
-					else
-					{
-						gafFilter = new GAFFilter();
-					}
+                    if(this._filterChain)
+                    {
+                        _filterChain.dispose();
+                    }
+                    else
+                    {
+                        _filterChain = new GAFFilterChain();
+                    }
 
-					gafFilter.setConfig(this._filterConfig, this._filterScale);
-					this._batch.filter = gafFilter;
+                    _filterChain.setFilterData(_filterConfig);
+					this._batch.filter = _filterChain;
 				}
 				else
 				{
@@ -489,6 +482,8 @@ package com.catalystapps.gaf.display
 						this._batch.filter.dispose();
 						this._batch.filter = null;
 					}
+
+					this._filterChain = null;
 					this._filterConfig = null;
 					this._filterScale = NaN;
 				}
@@ -522,7 +517,7 @@ package com.catalystapps.gaf.display
 			{
 				return;
 			}
-			this._validationQueue.addControl(this, false);
+			this._validationQueue.dispose();//addControl(this);
 		}
 
 		private function setDebugColor(idx: int): void
@@ -648,9 +643,9 @@ package com.catalystapps.gaf.display
 		/**
 		 * @private
 		 */
-		override public function hitTest(localPoint: Point, forTouch: Boolean = false): DisplayObject
+		override public function hitTest(localPoint: Point): DisplayObject
 		{
-			if (forTouch && (!this.visible || !this.touchable))
+			if ( (!this.visible || !this.touchable))
 			{
 				return null;
 			}
@@ -800,7 +795,7 @@ package com.catalystapps.gaf.display
 			this._validationQueue = ValidationQueue.forStarling(Starling.current);
 			if (this._isInvalid)
 			{
-				this._validationQueue.addControl(this, false);
+				this._validationQueue.dispose();//addControl(this, false);
 			}
 		}
 
@@ -887,15 +882,20 @@ package com.catalystapps.gaf.display
 		 * <p>In the following example, the smoothing is changed:</p>
 		 *
 		 * <listing version="3.0">
-		 * image.smoothing = TextureSmoothing.NONE;</listing>
+		 * image.textureSmoothing = TextureSmoothing.NONE;</listing>
 		 *
 		 * @default starling.textures.TextureSmoothing.BILINEAR
 		 *
 		 * @see starling.textures.TextureSmoothing
 		 */
-		public function get smoothing(): String
+		public function get textureSmoothing(): String
 		{
 			return this._smoothing;
+		}
+
+		public function set textureSmoothing(smoothing:String): void
+		{
+			this._smoothing = smoothing;
 		}
 
 		/**

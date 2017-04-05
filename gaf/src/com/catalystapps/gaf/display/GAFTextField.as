@@ -8,11 +8,11 @@ import com.catalystapps.gaf.data.GAF;
 import com.catalystapps.gaf.data.config.CFilter;
 import com.catalystapps.gaf.data.config.CTextFieldObject;
 import com.catalystapps.gaf.data.config.ICFilterData;
-import com.catalystapps.gaf.filter.GAFFilter;
+import com.catalystapps.gaf.filter.GAFFilterChain;
 import com.catalystapps.gaf.utils.DebugUtility;
 
 import feathers.controls.TextInput;
-import feathers.core.FeathersControl;
+import feathers.controls.text.TextFieldTextEditor;
 import feathers.core.ITextEditor;
 import feathers.text.BitmapFontTextFormat;
 
@@ -50,6 +50,7 @@ import starling.textures.Texture;
 
 		private var _pivotMatrix: Matrix;
 
+        private var _filterChain:GAFFilterChain;
 		private var _filterConfig: CFilter;
 		private var _filterScale: Number;
 
@@ -118,7 +119,6 @@ import starling.textures.Texture;
 			if (GAF.useBitmapFonts)
 			{
 				this.textEditorProperties.wordWrap = config.wordWrap;
-				this.textEditorProperties.snapToPixels = false;
 				this.textEditorFactory = function (): ITextEditor
 				{
 					return new GAFBitmapFontTextEditor();
@@ -178,9 +178,9 @@ import starling.textures.Texture;
 		 */
 		public function invalidateSize(): void
 		{
-			if (this.textEditor && this.textEditor is FeathersControl)
+			if (this.textEditor && this.textEditor is TextFieldTextEditor)
 			{
-				(this.textEditor as FeathersControl).invalidate(INVALIDATION_FLAG_SIZE);
+				(this.textEditor as TextFieldTextEditor).invalidate(INVALIDATION_FLAG_SIZE);
 			}
 			this.invalidate(INVALIDATION_FLAG_SIZE);
 		}
@@ -194,7 +194,7 @@ import starling.textures.Texture;
 		/** @private */
 		public function set debugColors(value: Vector.<uint>): void
 		{
-			var t: Texture = Texture.fromColor(1, 1, DebugUtility.RENDERING_NEUTRAL_COLOR, true);
+			var t: Texture = Texture.fromColor(1, 1, DebugUtility.RENDERING_NEUTRAL_COLOR, 1, true);
 			var bgImage: Image = new Image(t);
 			var alpha0: Number;
 			var alpha1: Number;
@@ -305,40 +305,33 @@ import starling.textures.Texture;
 		{
 			if (this.textEditor)
 			{
-				if (this.textEditor is IGAFTextEditor)
+				if (this.textEditor is GAFTextFieldTextEditor)
 				{
-					(this.textEditor as IGAFTextEditor).setFilterConfig(this._filterConfig, this._filterScale);
+					(this.textEditor as GAFTextFieldTextEditor).setFilterConfig(this._filterConfig, this._filterScale);
 				}
 				else if (this._filterConfig && !isNaN(this._filterScale))
 				{
-					var gafFilter: GAFFilter;
-					if (this.filter)
-					{
-						if (this.filter is GAFFilter)
-						{
-							gafFilter = this.filter as GAFFilter;
-						}
-						else
-						{
-							this.filter.dispose();
-							gafFilter = new GAFFilter();
-						}
-					}
-					else
-					{
-						gafFilter = new GAFFilter();
-					}
+                    if(this._filterChain)
+                    {
+                        _filterChain.dispose();
+                    }
+                    else
+                    {
+                        _filterChain = new GAFFilterChain();
+                    }
 
-					gafFilter.setConfig(this._filterConfig, this._filterScale);
+                    _filterChain.setFilterData(_filterConfig);
 					if (GAF.filtersEnabled)
 					{
-						this.filter = gafFilter;
+						this.filter = _filterChain;
 					}
 				}
 				else if (this.filter)
 				{
 					this.filter.dispose();
 					this.filter = null;
+
+					this._filterChain = null;
 				}
 			}
 		}

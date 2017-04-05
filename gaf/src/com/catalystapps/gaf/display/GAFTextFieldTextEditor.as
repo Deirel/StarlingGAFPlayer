@@ -17,215 +17,245 @@ import flash.geom.Point;
 import flash.geom.Rectangle;
 import flash.text.TextFormat;
 
-import starling.core.Starling;
-import starling.display.Image;
-import starling.textures.ConcreteTexture;
-import starling.textures.Texture;
-import starling.utils.getNextPowerOfTwo;
+	import starling.core.Starling;
 
-/** @private */
-public class GAFTextFieldTextEditor extends TextFieldTextEditor implements IGAFTextEditor {
-    /**
-     * @private
-     */
-    private static const HELPER_MATRIX:Matrix = new Matrix();
+	import starling.core.Starling;
+	import starling.display.Image;
+	import starling.textures.ConcreteTexture;
+	import starling.textures.Texture;
+	import starling.utils.MathUtil;
 
-    private var _filters:Array;
-    private var _scale:Number;
-    private var _csf:Number;
+	/** @private */
+	public class GAFTextFieldTextEditor extends TextFieldTextEditor
+	{
+		/**
+		 * @private
+		 */
+		private static const HELPER_MATRIX: Matrix = new Matrix();
 
-    private var _snapshotClipRect:Rectangle;
+		private var _filters: Array;
+		private var _scale: Number;
+		private var _csf: Number;
 
-    public function GAFTextFieldTextEditor(scale:Number = 1, csf:Number = 1) {
-        this._scale = scale;
-        this._csf = csf;
-        super();
+		private var _snapshotClipRect: Rectangle;
 
-        try // Feathers revision before bca9b93
-        {
-            this._snapshotClipRect = this["_textFieldClipRect"];
-        }
-        catch (error:Error) {
-            this._snapshotClipRect = this["_textFieldSnapshotClipRect"];
-        }
-    }
+		public function GAFTextFieldTextEditor(scale: Number = 1, csf: Number = 1)
+		{
+			this._scale = scale;
+			this._csf = csf;
+			super();
 
-    /** @private */
-    public function setFilterConfig(value:CFilter, scale:Number = 1):void {
-        if (!GAF.filtersEnabled) {
-            value = null;
-        }
+			try // Feathers revision before bca9b93
+			{
+				this._snapshotClipRect = this["_textFieldClipRect"];
+			}
+			catch (error: Error)
+			{
+				this._snapshotClipRect = this["_textFieldSnapshotClipRect"];
+			}
+		}
 
-        var filters:Array = [];
-        if (value) {
-            for each (var filter:ICFilterData in value.filterConfigs) {
-                filters.push(FiltersUtility.getNativeFilter(filter, scale * this._csf));
+		/** @private */
+		public function setFilterConfig(value: CFilter, scale: Number = 1): void
+		{
+            if (!GAF.filtersEnabled) {
+                value = null;
             }
-        }
 
-        if (this.textField) {
-            this.textField.filters = filters;
-        }
-        else {
-            this._filters = filters;
-        }
-    }
+			var filters: Array = [];
+			if (value)
+			{
+				for each (var filter: ICFilterData in value.filterConfigs)
+				{
+					filters.push(FiltersUtility.getNativeFilter(filter, scale * this._csf));
+				}
+			}
 
-    /** @private */
-    override protected function initialize():void {
-        super.initialize();
+			if (this.textField)
+			{
+				this.textField.filters = filters;
+			}
+			else
+			{
+				this._filters = filters;
+			}
+		}
 
-        if (this._filters) {
-            this.textField.filters = this._filters;
-            this._filters = null;
-        }
-    }
+		/** @private */
+		override protected function initialize(): void
+		{
+			super.initialize();
 
-    /**
-     * @private
-     */
-    override protected function refreshSnapshotParameters():void {
-        this._textFieldOffsetX = 0;
-        this._textFieldOffsetY = 0;
-        this._snapshotClipRect.x = 0;
-        this._snapshotClipRect.y = 0;
+			if (this._filters)
+			{
+				this.textField.filters = this._filters;
+				this._filters = null;
+			}
+		}
 
-        var clipWidth:Number = this.actualWidth * this._scale * this._csf;
-        if (clipWidth < 0) {
-            clipWidth = 0;
-        }
-        var clipHeight:Number = this.actualHeight * this._scale * this._csf;
-        if (clipHeight < 0) {
-            clipHeight = 0;
-        }
-        this._snapshotClipRect.width = clipWidth;
-        this._snapshotClipRect.height = clipHeight;
+		/**
+		 * @private
+		 */
+		override protected function refreshSnapshotParameters(): void
+		{
+			this._textFieldOffsetX = 0;
+			this._textFieldOffsetY = 0;
+			this._snapshotClipRect.x = 0;
+			this._snapshotClipRect.y = 0;
 
-        this._snapshotClipRect.copyFrom(
-                DisplayUtility.getBoundsWithFilters(this._snapshotClipRect, this.textField.filters));
-        this._textFieldOffsetX = this._snapshotClipRect.x;
-        this._textFieldOffsetY = this._snapshotClipRect.y;
-        this._snapshotClipRect.x = 0;
-        this._snapshotClipRect.y = 0;
-    }
+			var clipWidth: Number = this.actualWidth * this._scale * this._csf;
+			if (clipWidth < 0)
+			{
+				clipWidth = 0;
+			}
+			var clipHeight: Number = this.actualHeight * this._scale * this._csf;
+			if (clipHeight < 0)
+			{
+				clipHeight = 0;
+			}
+			this._snapshotClipRect.width = clipWidth;
+			this._snapshotClipRect.height = clipHeight;
 
-    /**
-     * @private
-     */
-    override protected function positionSnapshot():void {
-        if (!this.textSnapshot) {
-            return;
-        }
+			this._snapshotClipRect.copyFrom(DisplayUtility.getBoundsWithFilters(this._snapshotClipRect, this.textField.filters));
+			this._textFieldOffsetX = this._snapshotClipRect.x;
+			this._textFieldOffsetY = this._snapshotClipRect.y;
+			this._snapshotClipRect.x = 0;
+			this._snapshotClipRect.y = 0;
+		}
 
-        this.textSnapshot.x = this._textFieldOffsetX / this._scale / this._csf;
-        this.textSnapshot.y = this._textFieldOffsetY / this._scale / this._csf;
-    }
+		/**
+		 * @private
+		 */
+		override protected function positionSnapshot(): void
+		{
+			if (!this.textSnapshot)
+			{
+				return;
+			}
 
-    /**
-     * @private
-     */
-    override protected function checkIfNewSnapshotIsNeeded():void {
-        var canUseRectangleTexture:Boolean = Starling.current.profile != Context3DProfile.BASELINE_CONSTRAINED;
-        if (canUseRectangleTexture) {
-            this._snapshotWidth = this._snapshotClipRect.width;
-            this._snapshotHeight = this._snapshotClipRect.height;
-        }
-        else {
-            this._snapshotWidth = getNextPowerOfTwo(this._snapshotClipRect.width);
-            this._snapshotHeight = getNextPowerOfTwo(this._snapshotClipRect.height);
-        }
-        var textureRoot:ConcreteTexture = this.textSnapshot ? this.textSnapshot.texture.root : null;
-        this._needsNewTexture = this._needsNewTexture || !this.textSnapshot ||
-                                textureRoot.scale != this._scale * this._csf ||
-                                this._snapshotWidth != textureRoot.width || this._snapshotHeight != textureRoot.height;
-    }
+			this.textSnapshot.x = this._textFieldOffsetX / this._scale / this._csf;
+			this.textSnapshot.y = this._textFieldOffsetY / this._scale / this._csf;
+		}
 
-    /**
-     * @private
-     */
-    override protected function texture_onRestore():void {
-        if (this.textSnapshot && this.textSnapshot.texture &&
-            this.textSnapshot.texture.scale != this._scale * this._csf) {
-            //if we've changed between scale factors, we need to recreate
-            //the texture to match the new scale factor.
-            this.invalidate(INVALIDATION_FLAG_SIZE);
-        }
-        else {
-            this.refreshSnapshot();
-        }
-    }
+		/**
+		 * @private
+		 */
+		override protected function checkIfNewSnapshotIsNeeded(): void
+		{
+			var canUseRectangleTexture: Boolean = Starling.current.profile != Context3DProfile.BASELINE_CONSTRAINED;
+			if (canUseRectangleTexture)
+			{
+				this._snapshotWidth = this._snapshotClipRect.width;
+				this._snapshotHeight = this._snapshotClipRect.height;
+			}
+			else
+			{
+				this._snapshotWidth = MathUtil.getNextPowerOfTwo(this._snapshotClipRect.width);
+				this._snapshotHeight = MathUtil.getNextPowerOfTwo(this._snapshotClipRect.height);
+			}
+			var textureRoot: ConcreteTexture = this.textSnapshot ? this.textSnapshot.texture.root : null;
+			this._needsNewTexture = this._needsNewTexture || !this.textSnapshot ||
+					textureRoot.scale != this._scale * this._csf ||
+					this._snapshotWidth != textureRoot.width || this._snapshotHeight != textureRoot.height;
+		}
 
-    /**
-     * @private
-     */
-    override protected function refreshSnapshot():void {
-        if (this._snapshotWidth <= 0 || this._snapshotHeight <= 0) {
-            return;
-        }
+		/**
+		 * @private
+		 */
+		override protected function texture_onRestore(): void
+		{
+			if (this.textSnapshot && this.textSnapshot.texture &&
+					this.textSnapshot.texture.scale != this._scale * this._csf)
+			{
+				//if we've changed between scale factors, we need to recreate
+				//the texture to match the new scale factor.
+				this.invalidate(INVALIDATION_FLAG_SIZE);
+			}
+			else
+			{
+				this.refreshSnapshot();
+			}
+		}
 
-        var gutterPositionOffset:Number = 2;
-        if (this._useGutter) {
-            gutterPositionOffset = 0;
-        }
+		/**
+		 * @private
+		 */
+		override protected function refreshSnapshot(): void
+		{
+			if (this._snapshotWidth <= 0 || this._snapshotHeight <= 0)
+			{
+				return;
+			}
 
-        var textureScaleFactor:Number = this._scale * this._csf;
+			var gutterPositionOffset: Number = 2;
+			if (this._useGutter)
+			{
+				gutterPositionOffset = 0;
+			}
 
-        HELPER_MATRIX.identity();
-        HELPER_MATRIX.scale(textureScaleFactor, textureScaleFactor);
+			var textureScaleFactor: Number = this._scale * this._csf;
 
-        HELPER_MATRIX.translate(-this._textFieldOffsetX - gutterPositionOffset,
-                                -this._textFieldOffsetY - gutterPositionOffset);
+			HELPER_MATRIX.identity();
+			HELPER_MATRIX.scale(textureScaleFactor, textureScaleFactor);
 
-        var bitmapData:BitmapData = new BitmapData(this._snapshotWidth, this._snapshotHeight, true, 0x00ff00ff);
-        bitmapData.draw(this.textField, HELPER_MATRIX, null, null, this._snapshotClipRect);
-        var newTexture:Texture;
-        if (!this.textSnapshot || this._needsNewTexture) {
-            //skip Texture.fromBitmapData() because we don't want
-            //it to create an onRestore function that will be
-            //immediately discarded for garbage collection.
-            newTexture = Texture.empty(bitmapData.width / textureScaleFactor, bitmapData.height / textureScaleFactor,
-                                       true, false, false, textureScaleFactor);
-            newTexture.root.uploadBitmapData(bitmapData);
-            newTexture.root.onRestore = texture_onRestore;
-        }
+			HELPER_MATRIX.translate(-this._textFieldOffsetX - gutterPositionOffset, -this._textFieldOffsetY - gutterPositionOffset);
 
-        if (!this.textSnapshot) {
-            this.textSnapshot = new Image(newTexture);
-            this.addChild(this.textSnapshot);
-        }
-        else {
-            if (this._needsNewTexture) {
-                this.textSnapshot.texture.dispose();
-                this.textSnapshot.texture = newTexture;
-                this.textSnapshot.readjustSize();
+			var bitmapData: BitmapData = new BitmapData(this._snapshotWidth, this._snapshotHeight, true, 0x00ff00ff);
+			bitmapData.draw(this.textField, HELPER_MATRIX, null, null, this._snapshotClipRect);
+			var newTexture: Texture;
+			if (!this.textSnapshot || this._needsNewTexture)
+			{
+				//skip Texture.fromBitmapData() because we don't want
+				//it to create an onRestore function that will be
+				//immediately discarded for garbage collection.
+				newTexture = Texture.empty(bitmapData.width / textureScaleFactor, bitmapData.height / textureScaleFactor,
+						true, false, false, textureScaleFactor);
+				newTexture.root.uploadBitmapData(bitmapData);
+				newTexture.root.onRestore = texture_onRestore;
+			}
+
+			if (!this.textSnapshot)
+			{
+				this.textSnapshot = new Image(newTexture);
+				this.addChild(this.textSnapshot);
+			}
+			else
+			{
+				if (this._needsNewTexture)
+				{
+					this.textSnapshot.texture.dispose();
+					this.textSnapshot.texture = newTexture;
+					this.textSnapshot.readjustSize();
+				}
+				else
+				{
+					//this is faster, if we haven't resized the bitmapdata
+					var existingTexture: Texture = this.textSnapshot.texture;
+					existingTexture.root.uploadBitmapData(bitmapData);
+				}
+			}
+
+			this.textSnapshot.alpha = this._text.length > 0 ? 1 : 0;
+			bitmapData.dispose();
+			this._needsNewTexture = false;
+		}
+
+		override public function set textFormat(value: TextFormat): void
+		{
+			this._textFormat = value;
+			//since the text format has changed, the comparison will return
+			//false whether we use the real previous format or null. might as
+			//well remove the reference to an object we don't need anymore.
+			this._previousTextFormat = null;
+			this.invalidate(INVALIDATION_FLAG_STYLES);
+		}
+
+        override public function measureText(result:Point = null):Point {
+            if (!result) {
+                result = new Point();
             }
-            else {
-                //this is faster, if we haven't resized the bitmapdata
-                var existingTexture:Texture = this.textSnapshot.texture;
-                existingTexture.root.uploadBitmapData(bitmapData);
-            }
+            result.setTo(measureTextField.textWidth, measureTextField.textHeight);
+            return result;
         }
-
-        this.textSnapshot.alpha = this._text.length > 0 ? 1 : 0;
-        bitmapData.dispose();
-        this._needsNewTexture = false;
-    }
-
-    override public function set textFormat(value:TextFormat):void {
-        this._textFormat = value;
-        //since the text format has changed, the comparison will return
-        //false whether we use the real previous format or null. might as
-        //well remove the reference to an object we don't need anymore.
-        this._previousTextFormat = null;
-        this.invalidate(INVALIDATION_FLAG_STYLES);
-    }
-
-    override public function measureText(result:Point = null):Point {
-        if (!result) {
-            result = new Point();
-        }
-        result.setTo(measureTextField.textWidth, measureTextField.textHeight);
-        return result;
-    }
-}
+	}
 }

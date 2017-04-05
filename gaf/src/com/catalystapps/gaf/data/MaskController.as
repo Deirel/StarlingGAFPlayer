@@ -2,6 +2,8 @@ package com.catalystapps.gaf.data {
 import flash.geom.Rectangle;
 import flash.utils.Dictionary;
 
+import starling.display.Quad;
+
 import starling.display.Sprite;
 
 public class MaskController implements IMaskController {
@@ -56,21 +58,12 @@ public class MaskController implements IMaskController {
             var maskData:MaskData = _masksVector[i];
             if (maskData.name == name) {
                 _masksVector.splice(i, 1);
-                removeClipping(maskData);
                 if (!_masksVector.length && _addedToAnimator) {
                     _addedToAnimator = false;
                     _animator.remove(this);
                 }
+                maskData.destroy();
                 break;
-            }
-        }
-    }
-
-    private function removeClipping(maskData:MaskData):void {
-        if (maskData.mask) {
-            var i:int = maskData.masked.length;
-            while (i--) {
-                maskData.masked[i].clipRect = null;
             }
         }
     }
@@ -91,7 +84,11 @@ public class MaskController implements IMaskController {
             while (i--) {
                 var masked:Sprite = maskData.masked[i];
                 mask.getBounds(masked, _helperRect);
-                masked.clipRect = _helperRect;
+                var clipRect:Quad = maskData.clipRects[masked] as Quad;
+                clipRect.x = _helperRect.x;
+                clipRect.y = _helperRect.y;
+                clipRect.width = _helperRect.width;
+                clipRect.height = _helperRect.height;
             }
         }
     }
@@ -99,12 +96,17 @@ public class MaskController implements IMaskController {
 }
 import com.catalystapps.gaf.data.IMaskDisplayObject;
 
+import flash.utils.Dictionary;
+
+import starling.display.Quad;
+
 import starling.display.Sprite;
 
 internal class MaskData {
     public var mask:IMaskDisplayObject;
     public var masked:Vector.<Sprite> = new Vector.<Sprite>();
     public var name:String;
+    public var clipRects:Dictionary = new Dictionary();
 
     public function MaskData(name:String) {
         this.name = name;
@@ -118,6 +120,9 @@ internal class MaskData {
     public function setMasked(masked:Sprite):MaskData {
         if (this.masked.indexOf(masked) == -1) {
             this.masked.push(masked);
+            var maskQuad:Quad = new Quad(10, 10);
+            clipRects[masked] = maskQuad;
+            masked.mask = maskQuad;
         }
         return this;
     }
@@ -131,5 +136,22 @@ internal class MaskData {
 
     public function get numMasked():int {
         return masked.length;
+    }
+
+    public function destroy():void {
+        mask = null;
+        var i:int = masked.length;
+        while (i--) {
+            masked[i].mask = null;
+        }
+        masked.length = 0;
+        masked = null;
+        if (clipRects) {
+            for (var key:Object in clipRects) {
+                var quad:Quad = key as Quad;
+                quad && quad.dispose();
+            }
+        }
+        clipRects = null;
     }
 }
