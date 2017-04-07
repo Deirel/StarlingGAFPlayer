@@ -517,7 +517,11 @@ import starling.textures.Texture;
 		public function get textWidth(): Number
 		{
 			this.validate();
+			// Workaround
+			var w:Number = this.textEditor.width;
+			this.textEditor.width = NaN;
 			this.textEditor.measureText(HELPER_POINT);
+			this.textEditor.width = w;
 
 			return HELPER_POINT.x;
 		}
