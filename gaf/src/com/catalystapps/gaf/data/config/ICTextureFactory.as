@@ -6,5 +6,7 @@ public interface ICTextureFactory {
     function create(csf:Number):Texture;
 
     function createAsync(csf:Number, callback:Function):void;
+
+    function dispose():void;
 }
 }
