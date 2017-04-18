@@ -1,25 +1,22 @@
 package com.catalystapps.gaf.display
 {
-	import com.catalystapps.gaf.core.gaf_internal;
-    import com.catalystapps.gaf.data.GAF;
+import com.catalystapps.gaf.core.gaf_internal;
+import com.catalystapps.gaf.data.GAF;
 import com.catalystapps.gaf.data.IMaskDisplayObject;
 import com.catalystapps.gaf.data.config.CFilter;
-	import com.catalystapps.gaf.filter.GAFFilter;
+import com.catalystapps.gaf.filter.GAFFilterChain;
 
-	import com.catalystapps.gaf.data.config.CFilter;
-	import com.catalystapps.gaf.filter.GAFFilterChain;
+import flash.geom.Matrix;
+import flash.geom.Matrix3D;
+import flash.geom.Point;
+import flash.geom.Rectangle;
+import flash.geom.Vector3D;
 
-	import flash.geom.Matrix;
-	import flash.geom.Matrix3D;
-	import flash.geom.Point;
-	import flash.geom.Rectangle;
-	import flash.geom.Vector3D;
+import starling.core.Starling;
+import starling.display.DisplayObject;
+import starling.display.Image;
 
-	import starling.core.Starling;
-	import starling.display.DisplayObject;
-	import starling.display.Image;
-
-	/**
+/**
 	 * GAFImage represents static GAF display object that is part of the <code>GAFMovieClip</code>.
 	 */
 	public class GAFImage extends Image implements IGAFImage, IMaxSize, IGAFDebug, IMaskDisplayObject
@@ -56,6 +53,7 @@ import com.catalystapps.gaf.data.config.CFilter;
 		private var _maskName: String;
 
         private var _localFiltersEnabled:Boolean = false;
+
 		/** @private */
 		gaf_internal var __debugOriginalAlpha: Number = NaN;
 
@@ -168,9 +166,9 @@ import com.catalystapps.gaf.data.config.CFilter;
 				return;
 			}
 
-			if (!_localFiltersEnabled &&!GAF.filtersEnabled)
+			if (!_localFiltersEnabled && !GAF.filtersEnabled)
 			{
-				value = null;
+				return;
 			}
 
 			if (this._filterConfig != value || this._filterScale != scale)
@@ -464,7 +462,10 @@ import com.catalystapps.gaf.data.config.CFilter;
 
         public function set localFiltersEnabled(value:Boolean):void
 		{
-            _localFiltersEnabled = value;
+            // TODO: Пересобрать routes.fla с отключенными фильтрами
+			if (name != "filterEnable_point") {
+				_localFiltersEnabled = value;
+			}
         }
     }
 }

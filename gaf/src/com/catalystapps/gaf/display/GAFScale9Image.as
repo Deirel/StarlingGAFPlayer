@@ -7,33 +7,32 @@
  */
 package com.catalystapps.gaf.display
 {
-	import com.catalystapps.gaf.core.gaf_internal;
-    import com.catalystapps.gaf.data.GAF;
-    import com.catalystapps.gaf.data.config.CFilter;
-	import com.catalystapps.gaf.filter.GAFFilter;
-	import com.catalystapps.gaf.filter.GAFFilterChain;
-	import com.catalystapps.gaf.utils.MathUtility;
+import com.catalystapps.gaf.core.gaf_internal;
+import com.catalystapps.gaf.data.GAF;
+import com.catalystapps.gaf.data.config.CFilter;
+import com.catalystapps.gaf.filter.GAFFilterChain;
+import com.catalystapps.gaf.utils.MathUtility;
 
-	import feathers.core.IValidating;
-	import feathers.core.ValidationQueue;
-	import feathers.utils.display.getDisplayObjectDepthFromStage;
+import feathers.core.IValidating;
+import feathers.core.ValidationQueue;
+import feathers.utils.display.getDisplayObjectDepthFromStage;
 
-	import flash.errors.IllegalOperationError;
-	import flash.geom.Matrix;
-	import flash.geom.Point;
-	import flash.geom.Rectangle;
+import flash.errors.IllegalOperationError;
+import flash.geom.Matrix;
+import flash.geom.Point;
+import flash.geom.Rectangle;
 
-	import starling.core.Starling;
-	import starling.display.DisplayObject;
-	import starling.display.Image;
-	import starling.display.MeshBatch;
-	import starling.display.Sprite;
-	import starling.events.Event;
-	import starling.textures.Texture;
-	import starling.textures.TextureSmoothing;
-	import starling.utils.MatrixUtil;
+import starling.core.Starling;
+import starling.display.DisplayObject;
+import starling.display.Image;
+import starling.display.MeshBatch;
+import starling.display.Sprite;
+import starling.events.Event;
+import starling.textures.Texture;
+import starling.textures.TextureSmoothing;
+import starling.utils.MatrixUtil;
 
-	use namespace gaf_internal;
+use namespace gaf_internal;
 
 	[Exclude(name="numChildren",kind="property")]
 	[Exclude(name="isFlattened",kind="property")]
@@ -454,7 +453,7 @@ package com.catalystapps.gaf.display
 
 			if (!GAF.filtersEnabled)
 			{
-				value = null;
+				return;
 			}
 
 			if (this._filterConfig != value || this._filterScale != scale)

@@ -531,7 +531,7 @@ use namespace gaf_internal;
 
 			if (!_localFiltersEnabled && !GAF.filtersEnabled)
 			{
-				value = null;
+				return;
 			}
 
 			if (this._filterConfig != value || this._filterScale != scale)
