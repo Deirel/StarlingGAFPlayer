@@ -88,6 +88,12 @@ package com.catalystapps.gaf.data.converters
 		private var _async: Boolean;
 		private var _ignoreSounds: Boolean;
 
+		private var _parseStartDCUid: uint;
+		private var _readNextTagDCUid: uint;
+		private var _readAnimationFramesDCUid: uint;
+
+		private var _needToDispose:Boolean = false;
+
 
 		// --------------------------------------------------------------------------
 		//
@@ -107,12 +113,32 @@ package com.catalystapps.gaf.data.converters
 			this._time = getTimer();
 			if (async)
 			{
-				Starling.juggler.delayCall(this.parseStart, 0.001);
+				_parseStartDCUid = Starling.juggler.delayCall(this.parseStart, 0.001);
 			}
 			else
 			{
 				this.parseStart();
 			}
+		}
+
+		public function dispose():void
+		{
+			_needToDispose = true;
+			(_parseStartDCUid > -1) && Starling.juggler.removeByID(_parseStartDCUid);
+			(_readNextTagDCUid > -1) && Starling.juggler.removeByID(_readNextTagDCUid);
+			(_readAnimationFramesDCUid > -1) && Starling.juggler.removeByID(_readAnimationFramesDCUid);
+			_bytes = null;
+			_config.dispose();
+			_config = null;
+			_textureElementSizes = null;
+			if (_currentTimeline)
+			{
+				_currentTimeline.dispose();
+				_currentTimeline = null;
+			}
+			_parseStartDCUid = -1;
+			_readNextTagDCUid = -1;
+			_readAnimationFramesDCUid = -1;
 		}
 
 		//--------------------------------------------------------------------------
@@ -123,6 +149,8 @@ package com.catalystapps.gaf.data.converters
 
 		private function parseStart(): void
 		{
+			this._parseStartDCUid = -1;
+
 			this._bytes.endian = Endian.LITTLE_ENDIAN;
 
 			this._config = new GAFAssetConfig(this._assetID);
@@ -205,6 +233,8 @@ package com.catalystapps.gaf.data.converters
 
 		private function readNextTag(): void
 		{
+			this._readNextTagDCUid = -1;
+
 			var tagID: int = this._bytes.readShort();
 			var tagLength: uint = this._bytes.readUnsignedInt();
 
@@ -275,13 +305,19 @@ package com.catalystapps.gaf.data.converters
 
 		private function delayedReadNextTag(): void
 		{
+			if (_needToDispose)
+			{
+				dispose();
+				return;
+			}
+
 			if (this._async)
 			{
 				var timer: int = getTimer();
 				if (timer - this._time >= 20)
 				{
 					this._time = timer;
-					Starling.juggler.delayCall(this.readNextTag, 0.001);
+					this._readNextTagDCUid = Starling.juggler.delayCall(this.readNextTag, 0.001);
 				}
 				else
 				{
@@ -440,6 +476,8 @@ package com.catalystapps.gaf.data.converters
 
 		private function readAnimationFrames(tagID: int, startIndex: uint = 0, framesCount: Number = NaN, prevFrame: CAnimationFrame = null): void
 		{
+			this._readAnimationFramesDCUid = -1;
+
 			if (isNaN(framesCount))
 			{
 				framesCount = this._bytes.readUnsignedInt();
@@ -476,7 +514,7 @@ package com.catalystapps.gaf.data.converters
 					if (this._async
 					&& (getTimer() - cycleTime >= 20))
 					{
-						Starling.juggler.delayCall(readAnimationFrames, 0.001, tagID, i, framesCount, prevFrame);
+						_readAnimationFramesDCUid = Starling.juggler.delayCall(readAnimationFrames, 0.001, tagID, i, framesCount, prevFrame);
 						return;
 					}
 

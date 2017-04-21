@@ -54,14 +54,17 @@ package com.catalystapps.gaf.core
 
 	/**
 	 * The ZipToGAFAssetConverter simply converts loaded GAF file into <code>GAFTimeline</code> object that
-	 * is used to create <code>GAFMovieClip</code> - animation display object ready to be used in starling display list.
+	 * is used to create <code>GAFMovieClip</code> - animation display object ready to be used in starling display
+	 * list.
 	 * If GAF file is created as Bundle it converts as <code>GAFBundle</code>
 	 *
-	 * <p>Here is the simple rules to understand what is <code>GAFTimeline</code>, <code>GAFBundle</code> and <code>GAFMovieClip</code>:</p>
+	 * <p>Here is the simple rules to understand what is <code>GAFTimeline</code>, <code>GAFBundle</code> and
+	 * <code>GAFMovieClip</code>:</p>
 	 *
 	 * <ul>
-	 *    <li><code>GAFTimeline</code> - is like a library symbol in Flash IDE. When you load GAF asset file you can not use it directly.
-	 *        All you need to do is convert it into <code>GAFTimeline</code> using ZipToGAFAssetConverter</li>
+	 *    <li><code>GAFTimeline</code> - is like a library symbol in Flash IDE. When you load GAF asset file you can
+	 * not use it directly. All you need to do is convert it into <code>GAFTimeline</code> using
+	 * ZipToGAFAssetConverter</li>
 	 *    <li><code>GAFBundle</code> - is a storage of all <code>GAFTimeline's</code> from Bundle</li>
 	 *    <li><code>GAFMovieClip</code> - is like an instance of Flash <code>MovieClip</code>.
 	 *        You can create it from <code>GAFTimeline</code> and use in <code>Starling Display Object</code></li>
@@ -80,9 +83,22 @@ package com.catalystapps.gaf.core
 		//
 		//--------------------------------------------------------------------------
 
+		public static const STATE_NO_STATE:int = -1;
+
+		public static const STATE_WAITING_FOR_DISPOSE:int = -2;
+
+		public static const STATE_UNZIPPING:int = 1;
+
+		public static const STATE_PARSING_GAF:int = 2;
+
+		public static const STATE_UNDEFINED:int = 3;
+
+		public static const STATE_DISPOSED:int = 100;
+
 		/**
 		 * In process of conversion doesn't create textures (doesn't load in GPU memory).
-		 * Be sure to set up <code>Starling.handleLostContext = true</code> when using this action, otherwise Error will occur
+		 * Be sure to set up <code>Starling.handleLostContext = true</code> when using this action, otherwise Error
+		 * will occur
 		 */
 		public static const ACTION_DONT_LOAD_IN_GPU_MEMORY: String = "actionDontLoadInGPUMemory";
 
@@ -156,6 +172,10 @@ package com.catalystapps.gaf.core
 		private var _atlasSourceURLs: Array;
 		private var _atlasSourceIndex: uint;
 
+		private var _state:int = STATE_NO_STATE;
+
+		private var _currentConverter:BinGAFAssetConfigConverter;
+
 		//--------------------------------------------------------------------------
 		//
 		//  CONSTRUCTOR
@@ -164,7 +184,8 @@ package com.catalystapps.gaf.core
 
 		/** Creates a new <code>ZipToGAFAssetConverter</code> instance.
 		 * @param id The id of the converter.
-		 * If it is not empty <code>ZipToGAFAssetConverter</code> sets the <code>name</code> of produced bundle equal to this id.
+		 * If it is not empty <code>ZipToGAFAssetConverter</code> sets the <code>name</code> of produced bundle equal
+		 *     to this id.
 		 */
 		public function ZipToGAFAssetConverter(id: String = null)
 		{
@@ -179,12 +200,14 @@ package com.catalystapps.gaf.core
 
 		/**
 		 * Converts GAF file (*.zip) into <code>GAFTimeline</code> or <code>GAFBundle</code> depending on file content.
-		 * Because conversion process is asynchronous use <code>Event.COMPLETE</code> listener to trigger successful conversion.
-		 * Use <code>ErrorEvent.ERROR</code> listener to trigger any conversion fail.
+		 * Because conversion process is asynchronous use <code>Event.COMPLETE</code> listener to trigger successful
+		 * conversion. Use <code>ErrorEvent.ERROR</code> listener to trigger any conversion fail.
 		 *
-		 * @param data *.zip file binary or File object represents a path to a *.gaf file or directory with *.gaf config files
+		 * @param data *.zip file binary or File object represents a path to a *.gaf file or directory with *.gaf
+		 *     config files
 		 * @param defaultScale Scale value for <code>GAFTimeline</code> that will be set by default
-		 * @param defaultContentScaleFactor Content scale factor (csf) value for <code>GAFTimeline</code> that will be set by default
+		 * @param defaultContentScaleFactor Content scale factor (csf) value for <code>GAFTimeline</code> that will be
+		 *     set by default
 		 */
 		public function convert(data: *, defaultScale: Number = NaN, defaultContentScaleFactor: Number = NaN): void
 		{
@@ -194,6 +217,8 @@ package com.catalystapps.gaf.core
 			}
 
 			this.reset();
+
+			this._state = STATE_UNDEFINED;
 
 			this._defaultScale = defaultScale;
 			this._defaultContentScaleFactor = defaultContentScaleFactor;
@@ -205,6 +230,8 @@ package com.catalystapps.gaf.core
 
 			if (data is ByteArray)
 			{
+				this._state = STATE_UNZIPPING;
+
 				this._zip = new FZip();
 				this._zip.addEventListener(FZipErrorEvent.PARSE_ERROR, this.onParseError);
 				this._zip.loadBytes(data);
@@ -217,7 +244,7 @@ package com.catalystapps.gaf.core
 
 				if (!ZipToGAFAssetConverter.keepZipInRAM)
 				{
-					(data as ByteArray).clear();
+					(data as ByteArray).length = 0;
 				}
 			}
 			else if (data is Array || getQualifiedClassName(data) == "flash.filesystem::File")
@@ -255,6 +282,35 @@ package com.catalystapps.gaf.core
 			}
 		}
 
+		/**
+		 * Cancel the decoding and dispose the converter
+		 */
+		public function dispose():void
+		{
+			switch (_state)
+			{
+				case STATE_WAITING_FOR_DISPOSE:
+				case STATE_NO_STATE:
+				case STATE_DISPOSED:
+					break;
+
+				case STATE_UNZIPPING:
+					// Cancel unzipping before parsing config etc
+					_state = STATE_WAITING_FOR_DISPOSE;
+					break;
+
+				case STATE_PARSING_GAF:
+					// Cancel parsing
+					_currentConverter && _currentConverter.dispose();
+					reset();
+					_state = STATE_DISPOSED;
+					break;
+
+				default:
+					throw new Error("Can't dispose cause of unsupported state");
+			}
+		}
+
 		//--------------------------------------------------------------------------
 		//
 		//  PRIVATE METHODS
@@ -285,6 +341,10 @@ package com.catalystapps.gaf.core
 
 			this._atlasSourceURLs = [];
 			this._atlasSourceIndex = 0;
+
+			this._state = STATE_NO_STATE;
+
+			this._currentConverter = null;
 		}
 
 		private function parseObject(data: Object): void
@@ -584,19 +644,28 @@ package com.catalystapps.gaf.core
 			clearTimeout(this._configConvertTimeout);
 			this._configConvertTimeout = NaN;
 
+			if (_state == STATE_WAITING_FOR_DISPOSE)
+			{
+				this.reset();
+				_state = STATE_DISPOSED;
+				return;
+			}
+
+			_state = STATE_PARSING_GAF;
+
 			var configID: String = this._gafAssetsIDs[this._currentConfigIndex];
 			var configSource: Object = this._gafAssetConfigSources[configID];
 			var gafAssetID: String = this.getAssetId(this._gafAssetsIDs[this._currentConfigIndex]);
 
 			if (configSource is ByteArray)
 			{
-				var converter: BinGAFAssetConfigConverter = new BinGAFAssetConfigConverter(gafAssetID, configSource as ByteArray);
-				converter.defaultScale = this._defaultScale;
-				converter.defaultCSF = this._defaultContentScaleFactor;
-				converter.ignoreSounds = this._ignoreSounds;
-				converter.addEventListener(Event.COMPLETE, onConverted);
-				converter.addEventListener(ErrorEvent.ERROR, onConvertError);
-				converter.convert(this._parseConfigAsync);
+				_currentConverter = new BinGAFAssetConfigConverter(gafAssetID, configSource as ByteArray);
+				_currentConverter.defaultScale = this._defaultScale;
+				_currentConverter.defaultCSF = this._defaultContentScaleFactor;
+				_currentConverter.ignoreSounds = this._ignoreSounds;
+				_currentConverter.addEventListener(Event.COMPLETE, onConverted);
+				_currentConverter.addEventListener(ErrorEvent.ERROR, onConvertError);
+				_currentConverter.convert(this._parseConfigAsync);
 			}
 			else
 			{
@@ -763,6 +832,13 @@ package com.catalystapps.gaf.core
 
 		private function onZipLoadedComplete(event: Event): void
 		{
+			if (_state == STATE_WAITING_FOR_DISPOSE)
+			{
+				this.reset();
+				_state = STATE_DISPOSED;
+				return;
+			}
+
 			if (this._zip.getFileCount())
 			{
 				this.parseZip();
@@ -793,6 +869,8 @@ package com.catalystapps.gaf.core
 		private function onConverted(event: Event): void
 		{
 			use namespace gaf_internal;
+
+			_currentConverter = null;
 
 			var configID: String = this._gafAssetsIDs[this._currentConfigIndex];
 			var folderURL: String = getFolderURL(configID);
@@ -925,7 +1003,8 @@ package com.catalystapps.gaf.core
 
 		/**
 		 * The id of the converter.
-		 * If it is not empty <code>ZipToGAFAssetConverter</code> sets the <code>name</code> of produced bundle equal to this id.
+		 * If it is not empty <code>ZipToGAFAssetConverter</code> sets the <code>name</code> of produced bundle equal
+		 * to this id.
 		 */
 		public function get id(): String
 		{
